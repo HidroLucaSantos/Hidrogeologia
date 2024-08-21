@@ -1,0 +1,64 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Função para calcular a condutividade hidráulica usando a fórmula de Hvorslev
+def hvorslev_condutividade_hidraulica(R, L, T0):
+    K = (R**2 * np.log(L / R)) / (2 * L * T0)
+    return K
+
+# Função para converter condutividade de m/s para ft/d
+def converter_m_s_para_ft_d(condutividade_m_s):
+    fator_conversao = 3.28084 * 86400
+    return condutividade_m_s * fator_conversao
+
+# Carregar a planilha
+planilha = pd.read_excel('Slugtest_v03.xlsx', sheet_name='Planilha1')
+
+# Mostrar as colunas disponíveis e as primeiras linhas
+print("Colunas disponíveis:", planilha.columns)
+print(planilha.head())
+
+# Separar parâmetros e dados, ajustando conforme a estrutura
+parametros = {
+    'Raio do Poço': 0.02605,  # Valor em metros
+    'Espessura da Seção Filtrante': 2.34,  # Valor em metros
+    'Nível Estático': 0.0,  # Valor em metros
+    'Nível de Água Inicial': 0.6065  # Valor em metros
+}
+
+# Calcular o nível da água a 37%
+nivel_agua_inicial = parametros['Nível de Água Inicial']
+nivel_estatico = parametros['Nível Estático']
+nivel_agua_37 = nivel_agua_inicial - 0.37 * (nivel_agua_inicial - nivel_estatico)
+
+# Encontrar o tempo correspondente a este nível
+tempo_T0 = planilha[planilha['Water Level'] <= nivel_agua_37]['Time'].iloc[0]
+
+# Extrair parâmetros
+raio_poco = parametros['Raio do Poço']
+espessura_filtro = parametros['Espessura da Seção Filtrante']
+
+# Calcular a condutividade hidráulica em m/s
+condutividade_hidraulica_m_s = hvorslev_condutividade_hidraulica(raio_poco, espessura_filtro, tempo_T0)
+
+# Converter a condutividade para ft/d
+condutividade_hidraulica_ft_d = converter_m_s_para_ft_d(condutividade_hidraulica_m_s)
+
+# Mostrar resultados
+print(f"Nível da água a 37% do nível inicial: {nivel_agua_37:.2f} metros")
+print(f"Tempo T0: {tempo_T0:.2f} segundos")
+print(f"Condutividade Hidráulica (K) em m/s: {condutividade_hidraulica_m_s:.4e} m/s")
+print(f"Condutividade Hidráulica (K) em ft/d: {condutividade_hidraulica_ft_d:.4e} ft/d")
+
+# Plotar os dados
+plt.figure(figsize=(10, 6))
+plt.plot(planilha['Time'], planilha['Water Level'], marker='o', linestyle='-', color='b')
+plt.axhline(y=nivel_agua_37, color='r', linestyle='--', label='Nível de Água a 37% do Inicial')
+plt.axvline(x=tempo_T0, color='g', linestyle='--', label=f'Tempo T0 ({tempo_T0:.2f} s)')
+plt.xlabel('Tempo (s)')
+plt.ylabel('Nível de Água (m)')
+plt.title('Teste de Slug')
+plt.legend()
+plt.grid(True)
+plt.show()
